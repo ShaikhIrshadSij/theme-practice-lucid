@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { ToastrService } from 'ngx-toastr';
 import { AccountService } from 'src/app/services/account.service';
 
 @Component({
@@ -18,7 +19,8 @@ export class LoginComponent implements OnInit {
     private formBuilder: FormBuilder,
     private route: ActivatedRoute,
     private router: Router,
-    private accountService: AccountService
+    private accountService: AccountService,
+    private toastrService: ToastrService
   ) {
     // redirect to home if already logged in
     if (this.accountService.isLoggedIn()) {
@@ -53,10 +55,20 @@ export class LoginComponent implements OnInit {
     this.loading = true;
     this.accountService
       .login(this.f.username.value, this.f.password.value)
-      .then(
+      .subscribe(
         (data: any) => {
-          localStorage.setItem('userInfo', data);
-          this.router.navigate([this.returnUrl]);
+          if (data.isSuccess) {
+            localStorage.setItem('userInfo', JSON.stringify({
+              userInfo: data.userInfo,
+              token: data.token
+            }));
+            this.toastrService.success(data.message)
+            this.router.navigate([this.returnUrl]);
+          } else {
+            this.loading = false;
+            this.submitted = false
+            this.toastrService.error(data.message)
+          }
         },
         (error) => {
           this.loading = false;
